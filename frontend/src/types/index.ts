@@ -53,3 +53,10 @@ export interface VisualizationBlock {
   content: string | ChartData;
   language?: string;
 }
+
+export type AIProvider = 'openrouter' | 'gemini';
+
+export interface GeminiConfig {
+  apiKey: string;
+  model: string;
+}

@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@google/genai": "^1.29.1",
+    "@toon-format/toon": "^1.0.0",
     "katex": "^0.16.25",
     "mermaid": "^11.12.1",
     "papaparse": "^5.5.3",

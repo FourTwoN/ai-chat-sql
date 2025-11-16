@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Message as MessageComponent } from './Message-unified';
-import type { Message } from '../types';
-import { sendChatRequest, createSystemPromptWithSchema } from '../lib/openrouter-unified';
+import type { Message, AIProvider } from '../types';
+import { sendChatRequest as sendOpenRouterRequest, createSystemPromptWithSchema } from '../lib/openrouter-unified';
+import { sendChatRequest as sendGeminiRequest } from '../lib/gemini';
 import { TOOLS, executeTool } from '../lib/tools-unified';
 import {
   initSQLiteDatabase,
@@ -14,6 +15,7 @@ import {
 } from '../lib/database-unified';
 
 interface ChatProps {
+  provider: AIProvider;
   apiKey: string;
   model: string;
   databaseType: 'sqlite' | 'postgresql';
@@ -22,6 +24,7 @@ interface ChatProps {
 }
 
 export const Chat: React.FC<ChatProps> = ({
+  provider,
   apiKey,
   model,
   databaseType,
@@ -133,8 +136,9 @@ export const Chat: React.FC<ChatProps> = ({
     while (continueLoop && iterationCount < MAX_ITERATIONS) {
       iterationCount++;
 
-      // Call OpenRouter API
-      const response = await sendChatRequest(
+      // Call AI API
+      const sendRequest = provider === 'openrouter' ? sendOpenRouterRequest : sendGeminiRequest;
+      const response = await sendRequest(
         conversationMessages,
         TOOLS,
         { apiKey, model }
@@ -193,10 +197,10 @@ export const Chat: React.FC<ChatProps> = ({
             });
           }
 
-          // Create tool result message
+          // Create tool result message - use TOON format for tabular data to save tokens
           const toolMessage: Message = {
             role: 'tool',
-            content: JSON.stringify(toolResult, null, 2),
+            content: toolResult._toon || JSON.stringify(toolResult, null, 2),
             toolCallId: toolCall.id,
             name: toolName
           };

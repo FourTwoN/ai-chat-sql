@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Message as MessageComponent } from './Message-unified';
-import type { Message } from '../types';
-import { sendChatRequest, createSystemPromptWithSchema } from '../lib/openrouter-unified';
+import type { Message, AIProvider } from '../types';
+import { sendChatRequest as sendOpenRouterRequest, createSystemPromptWithSchema } from '../lib/openrouter-unified';
+import { sendChatRequest as sendGeminiRequest } from '../lib/gemini';
 import { TOOLS, executeTool } from '../lib/tools-unified';
 import {
   initSQLiteDatabase,
@@ -14,6 +15,7 @@ import {
 } from '../lib/database-unified';
 
 interface ChatProps {
+  provider: AIProvider;
   apiKey: string;
   model: string;
   databaseType: 'sqlite' | 'postgresql';
@@ -22,6 +24,7 @@ interface ChatProps {
 }
 
 export const Chat: React.FC<ChatProps> = ({
+  provider,
   apiKey,
   model,
   databaseType,
@@ -35,6 +38,7 @@ export const Chat: React.FC<ChatProps> = ({
   const [dbInitialized, setDbInitialized] = useState(false);
   const [dbSchema, setDbSchema] = useState<string>('');
   const [toolResults, setToolResults] = useState<Map<string, any>>(new Map());
+  const [conversationId, setConversationId] = useState<string | null>(null);
   const [querySuggestions] = useState<string[]>([
     "What tables are in the database?",
     "Show me a summary of the data",
@@ -113,8 +117,27 @@ export const Chat: React.FC<ChatProps> = ({
     setIsLoading(true);
     setError(null);
 
+    // Generate conversation ID if not exists
+    let currentConversationId = conversationId;
+    if (!currentConversationId) {
+      currentConversationId = Date.now().toString();
+      setConversationId(currentConversationId);
+      // Log start
+      if (backendUrl) {
+        fetch(`${backendUrl}/api/logs`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            conversationId: currentConversationId,
+            event: 'start',
+            data: { message: 'Conversation started' }
+          })
+        }).catch(err => console.error('Log error:', err));
+      }
+    }
+
     try {
-      await processConversation([...messages, userMessage]);
+      await processConversation([...messages, userMessage], currentConversationId);
     } catch (error: any) {
       console.error('Chat error:', error);
       setError(error.message || 'An error occurred. Please try again.');
@@ -123,7 +146,7 @@ export const Chat: React.FC<ChatProps> = ({
     }
   };
 
-  const processConversation = async (currentMessages: Message[]) => {
+  const processConversation = async (currentMessages: Message[], conversationId?: string) => {
     let conversationMessages = [...currentMessages];
     let continueLoop = true;
     let iterationCount = 0;
@@ -133,11 +156,14 @@ export const Chat: React.FC<ChatProps> = ({
     while (continueLoop && iterationCount < MAX_ITERATIONS) {
       iterationCount++;
 
-      // Call OpenRouter API
-      const response = await sendChatRequest(
+      // Call AI API
+      const sendRequest = provider === 'openrouter' ? sendOpenRouterRequest : sendGeminiRequest;
+      const response = await sendRequest(
         conversationMessages,
         TOOLS,
-        { apiKey, model }
+        { apiKey, model },
+        conversationId,
+        backendUrl
       );
 
       const assistantMessage = response.choices[0]?.message;
@@ -179,7 +205,20 @@ export const Chat: React.FC<ChatProps> = ({
           console.log(`Executing tool: ${toolName}`, args);
 
           // Execute the tool
-          const toolResult = await executeTool(toolName, args);
+          const toolResult = await executeTool(toolName, args, conversationId, backendUrl);
+
+          // Log tool result
+          if (conversationId && backendUrl) {
+            fetch(`${backendUrl}/api/logs`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                conversationId,
+                event: 'tool_result',
+                data: { toolName, args, result: toolResult }
+              })
+            }).catch(err => console.error('Log error:', err));
+          }
 
           // Store tool result for visualization
           newToolResults.set(toolCall.id, toolResult);
@@ -193,10 +232,10 @@ export const Chat: React.FC<ChatProps> = ({
             });
           }
 
-          // Create tool result message
+          // Create tool result message - use TOON format for tabular data to save tokens
           const toolMessage: Message = {
             role: 'tool',
-            content: JSON.stringify(toolResult, null, 2),
+            content: toolResult._toon || JSON.stringify(toolResult, null, 2),
             toolCallId: toolCall.id,
             name: toolName
           };
@@ -283,16 +322,16 @@ ${result.error_detail ? `Detail: ${result.error_detail}` : ''}
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
                   </svg>
                 </div>
-                <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                <h2 className="text-3xl font-bold text-gray-900 mb-2">
                   Welcome to AI Database Chat!
                 </h2>
-                <p className="text-lg text-gray-600 dark:text-gray-400">
+                <p className="text-lg text-gray-600">
                   Connected to {databaseType === 'postgresql' ? 'your PostgreSQL database' : 'Chinook demo database'}
                 </p>
               </div>
 
-              <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-900 rounded-xl p-6 border border-blue-200 dark:border-gray-700">
-                <p className="font-semibold text-gray-900 dark:text-white mb-4 text-lg">
+              <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 border border-blue-200">
+                <p className="font-semibold text-gray-900 mb-4 text-lg">
                   💡 Try these questions:
                 </p>
                 <div className="grid gap-3">
@@ -300,20 +339,20 @@ ${result.error_detail ? `Detail: ${result.error_detail}` : ''}
                     <button
                       key={idx}
                       onClick={() => sendMessage(suggestion)}
-                      className="text-left px-4 py-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors border border-gray-200 dark:border-gray-700 group"
+                      className="text-left px-4 py-3 bg-white rounded-lg hover:bg-blue-50 transition-colors border border-gray-200 group"
                     >
                       <div className="flex items-center gap-3">
                         <svg className="w-5 h-5 text-blue-600 group-hover:text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                         </svg>
-                        <span className="text-gray-700 dark:text-gray-300">{suggestion}</span>
+                        <span className="text-gray-700">{suggestion}</span>
                       </div>
                     </button>
                   ))}
                 </div>
               </div>
 
-              <div className="mt-6 flex items-center justify-center gap-6 text-sm text-gray-500 dark:text-gray-400">
+              <div className="mt-6 flex items-center justify-center gap-6 text-sm text-gray-500">
                 <div className="flex items-center gap-2">
                   <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -349,7 +388,7 @@ ${result.error_detail ? `Detail: ${result.error_detail}` : ''}
 
         {isLoading && (
           <div className="flex justify-start">
-            <div className="bg-white dark:bg-gray-800 rounded-lg px-6 py-4 border border-gray-200 dark:border-gray-700 shadow-md">
+            <div className="bg-white rounded-lg px-6 py-4 border border-gray-200 shadow-md">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center text-white font-semibold shadow-lg">
                   AI
@@ -359,7 +398,7 @@ ${result.error_detail ? `Detail: ${result.error_detail}` : ''}
                   <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
                   <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                 </div>
-                <span className="text-sm text-gray-600 dark:text-gray-400">Thinking...</span>
+                <span className="text-sm text-gray-600">Thinking...</span>
               </div>
             </div>
           </div>
@@ -369,7 +408,7 @@ ${result.error_detail ? `Detail: ${result.error_detail}` : ''}
       </div>
 
       {/* Input */}
-      <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-800">
+      <div className="border-t border-gray-200 p-4 bg-white">
         <form onSubmit={handleSubmit} className="flex gap-3">
           <input
             type="text"
@@ -377,7 +416,7 @@ ${result.error_detail ? `Detail: ${result.error_detail}` : ''}
             onChange={(e) => setInput(e.target.value)}
             placeholder={dbInitialized ? "Ask about your database..." : "Loading database..."}
             disabled={isLoading || !dbInitialized}
-            className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           />
           <button
             type="submit"

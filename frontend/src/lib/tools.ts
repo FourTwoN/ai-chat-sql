@@ -7,6 +7,7 @@ import {
   getTableStats,
   getDatabaseType
 } from './database-unified';
+import { encode } from '@toon-format/toon';
 
 export const TOOLS: Tool[] = [
   {
@@ -119,11 +120,29 @@ export async function executeTool(toolName: string, args: any): Promise<any> {
       case 'preview_table': {
         const limit = Math.min(args.limit || 3, 10);
         const result = await previewTable(args.table_name, limit);
+        
+        // Convert to TOON format for token efficiency
+        const tableData = result.values.map((row: any[]) => {
+          const obj: any = {};
+          result.columns.forEach((col: string, idx: number) => {
+            obj[col] = row[idx];
+          });
+          return obj;
+        });
+        
+        const toonData = {
+          table_name: args.table_name,
+          data: tableData,
+          row_count: result.rowCount || result.values.length
+        };
+        
         return {
           table_name: args.table_name,
           columns: result.columns,
           rows: result.values,
-          row_count: result.rowCount || result.values.length
+          row_count: result.rowCount || result.values.length,
+          // Add TOON formatted data for LLM consumption
+          _toon: encode(toonData)
         };
       }
 
@@ -132,7 +151,7 @@ export async function executeTool(toolName: string, args: any): Promise<any> {
         let query = args.query.trim();
 
         // Warn if query doesn't have a LIMIT for large tables
-        const dbType = getDatabaseType();
+        // const dbType = getDatabaseType();
 
         // Add LIMIT if not present and it's a simple SELECT
         const upperQuery = query.toUpperCase();
@@ -151,12 +170,28 @@ export async function executeTool(toolName: string, args: any): Promise<any> {
           warning = `⚠️ Large result set (${resultSize} rows). Consider using a smaller LIMIT to avoid context overflow.`;
         }
 
+        // Convert to TOON format for token efficiency
+        const tableData = result.values.map((row: any[]) => {
+          const obj: any = {};
+          result.columns.forEach((col: string, idx: number) => {
+            obj[col] = row[idx];
+          });
+          return obj;
+        });
+        
+        const toonData = {
+          query_result: tableData,
+          row_count: resultSize
+        };
+
         return {
           columns: result.columns,
           rows: result.values,
           row_count: resultSize,
           query: query,
-          warning
+          warning,
+          // Add TOON formatted data for LLM consumption
+          _toon: encode(toonData)
         };
       }
 

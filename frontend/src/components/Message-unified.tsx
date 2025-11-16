@@ -71,7 +71,7 @@ export const Message: React.FC<MessageProps> = ({ message, toolResults }) => {
         className={`${isUser ? 'max-w-[80%]' : 'w-full max-w-[95%]'} rounded-lg ${
           isUser
             ? 'bg-blue-600 text-white px-4 py-3'
-            : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700'
+            : 'bg-white border border-gray-200'
         }`}
       >
         <div className="flex items-start gap-3">
@@ -97,12 +97,12 @@ export const Message: React.FC<MessageProps> = ({ message, toolResults }) => {
 
             {/* Tool calls indicator */}
             {!isUser && message.toolCalls && message.toolCalls.length > 0 && (
-              <div className="mt-2 px-2 text-sm text-gray-500 dark:text-gray-400">
+              <div className="mt-2 px-2 text-sm text-gray-500">
                 <div className="flex flex-wrap gap-2">
                   {message.toolCalls.map((tc, idx) => (
                     <span
                       key={idx}
-                      className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-md text-xs"
+                      className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 rounded-md text-xs"
                     >
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -133,9 +133,9 @@ export const Message: React.FC<MessageProps> = ({ message, toolResults }) => {
                 )}
 
                 {/* Data table with export */}
-                <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <h4 className="font-semibold text-gray-900 flex items-center gap-2">
                       <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                       </svg>
@@ -158,29 +158,29 @@ export const Message: React.FC<MessageProps> = ({ message, toolResults }) => {
 
                   {/* Table */}
                   <div className="overflow-x-auto max-h-96 overflow-y-auto">
-                    <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-700">
-                      <thead className="bg-gray-100 dark:bg-gray-800 sticky top-0">
+                    <table className="min-w-full divide-y divide-gray-300">
+                      <thead className="bg-gray-100 sticky top-0">
                         <tr>
                           {queryResults.columns.map((col, idx) => (
                             <th
                               key={idx}
-                              className="px-4 py-2 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider"
+                              className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider"
                             >
                               {col}
                             </th>
                           ))}
                         </tr>
                       </thead>
-                      <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                      <tbody className="bg-white divide-y divide-gray-200">
                         {queryResults.rows.map((row: any[], rowIdx) => (
                           <tr
                             key={rowIdx}
-                            className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                            className="hover:bg-gray-50 transition-colors"
                           >
                             {row.map((cell, cellIdx) => (
                               <td
                                 key={cellIdx}
-                                className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100 whitespace-nowrap"
+                                className="px-4 py-2 text-sm text-gray-900 whitespace-nowrap"
                               >
                                 {cell === null ? (
                                   <span className="text-gray-400 italic">null</span>
@@ -202,10 +202,10 @@ export const Message: React.FC<MessageProps> = ({ message, toolResults }) => {
                   {/* Query info */}
                   {queryResults.query && (
                     <details className="mt-3 text-xs">
-                      <summary className="cursor-pointer text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200">
+                      <summary className="cursor-pointer text-gray-600 hover:text-gray-900">
                         View SQL Query
                       </summary>
-                      <pre className="mt-2 p-2 bg-gray-100 dark:bg-gray-900 rounded text-gray-800 dark:text-gray-200 overflow-x-auto">
+                      <pre className="mt-2 p-2 bg-gray-100 rounded text-gray-800 overflow-x-auto">
                         {queryResults.query}
                       </pre>
                     </details>

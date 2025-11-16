@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { PostgresConfig } from '../lib/database-unified';
+import type { AIProvider } from '../types';
 
 export interface DatabaseSettings {
   type: 'sqlite' | 'postgresql';
@@ -8,9 +9,11 @@ export interface DatabaseSettings {
 }
 
 interface SettingsProps {
+  provider: AIProvider;
   apiKey: string;
   model: string;
   databaseSettings: DatabaseSettings;
+  onProviderChange: (provider: AIProvider) => void;
   onApiKeyChange: (apiKey: string) => void;
   onModelChange: (model: string) => void;
   onDatabaseChange: (settings: DatabaseSettings) => void;
@@ -18,14 +21,17 @@ interface SettingsProps {
 }
 
 export const Settings: React.FC<SettingsProps> = ({
+  provider,
   apiKey,
   model,
   databaseSettings,
+  onProviderChange,
   onApiKeyChange,
   onModelChange,
   onDatabaseChange,
   onClose
 }) => {
+  const [localProvider, setLocalProvider] = useState(provider);
   const [localApiKey, setLocalApiKey] = useState(apiKey);
   const [localModel, setLocalModel] = useState(model);
   const [showApiKey, setShowApiKey] = useState(false);
@@ -41,16 +47,21 @@ export const Settings: React.FC<SettingsProps> = ({
   const [showPgPassword, setShowPgPassword] = useState(false);
   const [backendUrl, setBackendUrl] = useState(databaseSettings.backendUrl || 'http://localhost:3001');
 
-  const popularModels = [
+  const popularModels = localProvider === 'openrouter' ? [
     { id: 'anthropic/claude-3.5-sonnet', name: 'Claude 3.5 Sonnet' },
     { id: 'anthropic/claude-3-opus', name: 'Claude 3 Opus' },
     { id: 'openai/gpt-4-turbo', name: 'GPT-4 Turbo' },
     { id: 'openai/gpt-4o', name: 'GPT-4o' },
     { id: 'google/gemini-pro-1.5', name: 'Gemini Pro 1.5' },
     { id: 'meta-llama/llama-3.1-70b-instruct', name: 'Llama 3.1 70B' },
+  ] : [
+    { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash' },
+    { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro' },
+    { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash' },
   ];
 
   const handleSave = () => {
+    onProviderChange(localProvider);
     onApiKeyChange(localApiKey);
     onModelChange(localModel);
 
@@ -113,17 +124,32 @@ export const Settings: React.FC<SettingsProps> = ({
           {/* AI Configuration Tab */}
           {activeTab === 'ai' && (
             <div className="space-y-6">
+              {/* Provider Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  AI Provider
+                </label>
+                <select
+                  value={localProvider}
+                  onChange={(e) => setLocalProvider(e.target.value as AIProvider)}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                >
+                  <option value="openrouter">OpenRouter</option>
+                  <option value="gemini">Google Gemini</option>
+                </select>
+              </div>
+
               {/* API Key */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  OpenRouter API Key
+                  {localProvider === 'openrouter' ? 'OpenRouter' : 'Gemini'} API Key
                 </label>
                 <div className="relative">
                   <input
                     type={showApiKey ? 'text' : 'password'}
                     value={localApiKey}
                     onChange={(e) => setLocalApiKey(e.target.value)}
-                    placeholder="sk-or-..."
+                    placeholder={localProvider === 'openrouter' ? "sk-or-..." : "AIza..."}
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white pr-10"
                   />
                   <button
@@ -146,12 +172,12 @@ export const Settings: React.FC<SettingsProps> = ({
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                   Get your API key from{' '}
                   <a
-                    href="https://openrouter.ai/keys"
+                    href={localProvider === 'openrouter' ? "https://openrouter.ai/keys" : "https://aistudio.google.com/app/apikey"}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-600 hover:underline"
                   >
-                    openrouter.ai/keys
+                    {localProvider === 'openrouter' ? 'openrouter.ai/keys' : 'Google AI Studio'}
                   </a>
                 </p>
               </div>
@@ -165,7 +191,7 @@ export const Settings: React.FC<SettingsProps> = ({
                   type="text"
                   value={localModel}
                   onChange={(e) => setLocalModel(e.target.value)}
-                  placeholder="anthropic/claude-3.5-sonnet"
+                  placeholder={localProvider === 'openrouter' ? "anthropic/claude-3.5-sonnet" : "gemini-2.0-flash-exp"}
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white mb-3"
                 />
 

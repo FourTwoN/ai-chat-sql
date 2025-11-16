@@ -10,7 +10,9 @@ export interface OpenRouterConfig {
 export async function sendChatRequest(
   messages: Message[],
   tools: Tool[],
-  config: OpenRouterConfig
+  config: OpenRouterConfig,
+  conversationId?: string,
+  backendUrl?: string
 ): Promise<any> {
   if (!config.apiKey) {
     throw new Error('OpenRouter API key is required');
@@ -49,6 +51,19 @@ export async function sendChatRequest(
     temperature: 0.1,
   };
 
+  // Log request
+  if (conversationId && backendUrl) {
+    await fetch(`${backendUrl}/api/logs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        conversationId,
+        event: 'request_to_ai',
+        data: { requestBody, messages: openRouterMessages, tools }
+      })
+    }).catch(err => console.error('Log error:', err));
+  }
+
   const response = await fetch(OPENROUTER_API_URL, {
     method: 'POST',
     headers: {
@@ -69,6 +84,20 @@ export async function sendChatRequest(
   }
 
   const data = await response.json();
+
+  // Log response
+  if (conversationId && backendUrl) {
+    await fetch(`${backendUrl}/api/logs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        conversationId,
+        event: 'response_from_ai',
+        data
+      })
+    }).catch(err => console.error('Log error:', err));
+  }
+
   return data;
 }
 
@@ -114,6 +143,12 @@ IMPORTANT - CONTEXT MANAGEMENT:
 - For exploratory queries, start with LIMIT 10 or LIMIT 100
 - Use get_table_stats to check table size before querying
 - If a result warning indicates context overflow, reduce the LIMIT
+
+DATA FORMAT OPTIMIZATION:
+- Query results are provided in TOON format (Token-Oriented Object Notation) for maximum token efficiency
+- TOON uses tabular format for uniform data: field headers followed by comma-separated values
+- Example: users[3]{id,name,role}: 1,Alice,admin  2,Bob,user  3,Charlie,moderator
+- Parse TOON data by reading the header format: arrayName[length]{fields} followed by data rows
 
 YOUR ROLE:
 1. Understand the database schema (already provided above)

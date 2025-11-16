@@ -1,13 +1,17 @@
 import { useState, useEffect } from 'react';
 import { Chat } from './components/Chat-unified';
 import { Settings, type DatabaseSettings } from './components/Settings-unified';
+import type { AIProvider } from './types';
 
+const STORAGE_KEY_PROVIDER = 'ai_provider';
 const STORAGE_KEY_API_KEY = 'openrouter_api_key';
 const STORAGE_KEY_MODEL = 'openrouter_model';
 const STORAGE_KEY_DB_SETTINGS = 'database_settings';
+const DEFAULT_PROVIDER: AIProvider = 'openrouter';
 const DEFAULT_MODEL = 'anthropic/claude-3.5-sonnet';
 
 function App() {
+  const [provider, setProvider] = useState<AIProvider>(DEFAULT_PROVIDER);
   const [apiKey, setApiKey] = useState('');
   const [model, setModel] = useState(DEFAULT_MODEL);
   const [showSettings, setShowSettings] = useState(false);
@@ -19,9 +23,14 @@ function App() {
 
   // Load settings from localStorage on mount
   useEffect(() => {
+    const savedProvider = localStorage.getItem(STORAGE_KEY_PROVIDER) as AIProvider;
     const savedApiKey = localStorage.getItem(STORAGE_KEY_API_KEY);
     const savedModel = localStorage.getItem(STORAGE_KEY_MODEL);
     const savedDbSettings = localStorage.getItem(STORAGE_KEY_DB_SETTINGS);
+
+    if (savedProvider) {
+      setProvider(savedProvider);
+    }
 
     if (savedApiKey) {
       setApiKey(savedApiKey);
@@ -73,6 +82,11 @@ function App() {
 
     return () => clearInterval(interval);
   }, [databaseSettings]);
+
+  const handleProviderChange = (newProvider: AIProvider) => {
+    setProvider(newProvider);
+    localStorage.setItem(STORAGE_KEY_PROVIDER, newProvider);
+  };
 
   const handleApiKeyChange = (newApiKey: string) => {
     setApiKey(newApiKey);
@@ -195,6 +209,7 @@ function App() {
               </div>
             )}
             <Chat
+              provider={provider}
               apiKey={apiKey}
               model={model}
               databaseType={databaseSettings.type}
@@ -273,9 +288,11 @@ function App() {
       {/* Settings Modal */}
       {showSettings && (
         <Settings
+          provider={provider}
           apiKey={apiKey}
           model={model}
           databaseSettings={databaseSettings}
+          onProviderChange={handleProviderChange}
           onApiKeyChange={handleApiKeyChange}
           onModelChange={handleModelChange}
           onDatabaseChange={handleDatabaseChange}
