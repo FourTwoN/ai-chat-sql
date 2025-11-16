@@ -48,10 +48,6 @@ export const Message: React.FC<MessageProps> = ({ message, toolResults }) => {
   const shouldVisualize = useMemo(() => {
     if (!queryResults) return false;
 
-    // Visualize if:
-    // - More than 2 rows
-    // - Has numeric columns
-    // - Not too many rows (< 100 for performance)
     const hasNumericData = queryResults.rows.some((row: any[]) =>
       row.some(cell => typeof cell === 'number')
     );
@@ -62,36 +58,32 @@ export const Message: React.FC<MessageProps> = ({ message, toolResults }) => {
   }, [queryResults]);
 
   return (
-    <div className={`flex w-full mb-6 ${isUser ? 'justify-end' : 'justify-start'}`}>
+    <div className={`flex w-full mb-4 ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div className={`${isUser ? 'max-w-2xl' : 'max-w-4xl w-full'}`}>
         {/* User Message */}
         {isUser ? (
-          <div className="bg-blue-600 text-white rounded-2xl px-5 py-3 shadow-md">
-            <div className="prose prose-invert max-w-none">
-              <MessageRenderer content={message.content} role={message.role} />
-            </div>
+          <div className="bg-blue-600 text-white rounded-lg px-4 py-3 shadow">
+            <MessageRenderer content={message.content} role={message.role} />
           </div>
         ) : (
           /* AI Message */
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
             {/* Message Content */}
             {message.content && (
-              <div className="px-6 py-4">
-                <div className="prose dark:prose-invert max-w-none">
-                  <MessageRenderer content={message.content} role={message.role} />
-                </div>
+              <div className="px-5 py-4">
+                <MessageRenderer content={message.content} role={message.role} />
               </div>
             )}
 
             {/* Tool calls indicator */}
             {message.toolCalls && message.toolCalls.length > 0 && (
-              <div className="px-6 pb-2 flex flex-wrap gap-2">
+              <div className="px-5 pb-3 flex flex-wrap gap-2">
                 {message.toolCalls.map((tc, idx) => (
                   <span
                     key={idx}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg text-xs font-medium"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded text-xs font-medium"
                   >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
                     {tc.function.name.replace(/_/g, ' ')}
@@ -102,7 +94,7 @@ export const Message: React.FC<MessageProps> = ({ message, toolResults }) => {
 
             {/* Query Results */}
             {queryResults && (
-              <div className="px-6 pb-6">
+              <div className="px-5 pb-5">
                 {/* Visualization */}
                 {shouldVisualize && (
                   <div className="mb-4">
@@ -121,10 +113,10 @@ export const Message: React.FC<MessageProps> = ({ message, toolResults }) => {
                 )}
 
                 {/* Data Table */}
-                <div className="bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-                  <div className="flex items-center justify-between px-4 py-3 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-white">
-                      <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-2.5 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
+                      <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                       </svg>
                       {queryResults.rowCount} {queryResults.rowCount === 1 ? 'row' : 'rows'}
@@ -144,30 +136,30 @@ export const Message: React.FC<MessageProps> = ({ message, toolResults }) => {
                     />
                   </div>
 
-                  <div className="overflow-x-auto max-h-96">
-                    <table className="min-w-full">
+                  <div className="overflow-x-auto max-h-80">
+                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                       <thead className="bg-gray-100 dark:bg-gray-800 sticky top-0">
                         <tr>
                           {queryResults.columns.map((col, idx) => (
                             <th
                               key={idx}
-                              className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider border-b-2 border-gray-200 dark:border-gray-700"
+                              className="px-3 py-2 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase"
                             >
                               {col}
                             </th>
                           ))}
                         </tr>
                       </thead>
-                      <tbody className="bg-white dark:bg-gray-800">
+                      <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:border-gray-700">
                         {queryResults.rows.map((row: any[], rowIdx) => (
                           <tr
                             key={rowIdx}
-                            className="border-b border-gray-100 dark:border-gray-700 hover:bg-blue-50/50 dark:hover:bg-gray-700/50 transition-colors"
+                            className="hover:bg-gray-50 dark:hover:bg-gray-700/50"
                           >
                             {row.map((cell, cellIdx) => (
                               <td
                                 key={cellIdx}
-                                className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100"
+                                className="px-3 py-2 text-sm text-gray-900 dark:text-gray-100"
                               >
                                 {cell === null ? (
                                   <span className="text-gray-400 italic text-xs">null</span>
@@ -188,14 +180,14 @@ export const Message: React.FC<MessageProps> = ({ message, toolResults }) => {
 
                   {/* Query info */}
                   {queryResults.query && (
-                    <details className="px-4 py-3 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
+                    <details className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
                       <summary className="cursor-pointer text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 flex items-center gap-2">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                         </svg>
                         View SQL Query
                       </summary>
-                      <pre className="mt-3 p-3 bg-gray-800 dark:bg-gray-950 rounded-lg text-green-400 text-xs overflow-x-auto font-mono">
+                      <pre className="mt-2 p-3 bg-gray-800 dark:bg-gray-950 rounded text-green-400 text-xs overflow-x-auto font-mono">
                         {queryResults.query}
                       </pre>
                     </details>
