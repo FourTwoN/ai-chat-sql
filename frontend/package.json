@@ -12,6 +12,8 @@
   "dependencies": {
     "katex": "^0.16.25",
     "mermaid": "^11.12.1",
+    "papaparse": "^5.5.3",
+    "pg": "^8.16.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-markdown": "^10.1.0",
@@ -19,12 +21,15 @@
     "rehype-katex": "^7.0.1",
     "remark-gfm": "^4.0.1",
     "remark-math": "^6.0.0",
-    "sql.js": "^1.13.0"
+    "sql.js": "^1.13.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
     "@tailwindcss/postcss": "^4.1.17",
     "@types/node": "^24.10.0",
+    "@types/papaparse": "^5.5.0",
+    "@types/pg": "^8.15.6",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
     "@types/sql.js": "^1.4.9",
