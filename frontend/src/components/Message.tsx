@@ -62,89 +62,77 @@ export const Message: React.FC<MessageProps> = ({ message, toolResults }) => {
   }, [queryResults]);
 
   return (
-    <div
-      className={`flex w-full mb-4 ${
-        isUser ? 'justify-end' : 'justify-start'
-      }`}
-    >
-      <div
-        className={`${isUser ? 'max-w-[80%]' : 'w-full max-w-[95%]'} rounded-lg ${
-          isUser
-            ? 'bg-blue-600 text-white px-4 py-3'
-            : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700'
-        }`}
-      >
-        <div className="flex items-start gap-3">
-          <div className="flex-shrink-0 mt-1">
-            {isUser ? (
-              <div className="w-8 h-8 rounded-full bg-blue-700 flex items-center justify-center text-white font-semibold text-sm">
-                U
-              </div>
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center text-white font-semibold text-sm shadow-lg">
-                AI
-              </div>
-            )}
+    <div className={`flex w-full mb-6 ${isUser ? 'justify-end' : 'justify-start'}`}>
+      <div className={`${isUser ? 'max-w-2xl' : 'max-w-4xl w-full'}`}>
+        {/* User Message */}
+        {isUser ? (
+          <div className="bg-blue-600 text-white rounded-2xl px-5 py-3 shadow-md">
+            <div className="prose prose-invert max-w-none">
+              <MessageRenderer content={message.content} role={message.role} />
+            </div>
           </div>
-
-          <div className="flex-1 min-w-0">
-            {/* Main message content */}
+        ) : (
+          /* AI Message */
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md overflow-hidden">
+            {/* Message Content */}
             {message.content && (
-              <div className={isUser ? '' : 'px-2 py-3'}>
-                <MessageRenderer content={message.content} role={message.role} />
-              </div>
-            )}
-
-            {/* Tool calls indicator */}
-            {!isUser && message.toolCalls && message.toolCalls.length > 0 && (
-              <div className="mt-2 px-2 text-sm text-gray-500 dark:text-gray-400">
-                <div className="flex flex-wrap gap-2">
-                  {message.toolCalls.map((tc, idx) => (
-                    <span
-                      key={idx}
-                      className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-md text-xs"
-                    >
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                      </svg>
-                      {tc.function.name}
-                    </span>
-                  ))}
+              <div className="px-6 py-4">
+                <div className="prose dark:prose-invert max-w-none">
+                  <MessageRenderer content={message.content} role={message.role} />
                 </div>
               </div>
             )}
 
-            {/* Query Results Visualization */}
-            {!isUser && queryResults && (
-              <div className="mt-4">
-                {/* Data visualization */}
+            {/* Tool calls indicator */}
+            {message.toolCalls && message.toolCalls.length > 0 && (
+              <div className="px-6 pb-2 flex flex-wrap gap-2">
+                {message.toolCalls.map((tc, idx) => (
+                  <span
+                    key={idx}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg text-xs font-medium"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    {tc.function.name.replace(/_/g, ' ')}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Query Results */}
+            {queryResults && (
+              <div className="px-6 pb-6">
+                {/* Visualization */}
                 {shouldVisualize && (
-                  <DataVisualization
-                    data={queryResults.rows.map((row: any[], index) => {
-                      const obj: any = { _index: index };
-                      queryResults.columns.forEach((col, colIndex) => {
-                        obj[col] = row[colIndex];
-                      });
-                      return obj;
-                    })}
-                    columns={queryResults.columns}
-                    title="Query Results Visualization"
-                  />
+                  <div className="mb-4">
+                    <DataVisualization
+                      data={queryResults.rows.map((row: any[], index) => {
+                        const obj: any = { _index: index };
+                        queryResults.columns.forEach((col, colIndex) => {
+                          obj[col] = row[colIndex];
+                        });
+                        return obj;
+                      })}
+                      columns={queryResults.columns}
+                      title="Query Results"
+                    />
+                  </div>
                 )}
 
-                {/* Data table with export */}
-                <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                {/* Data Table */}
+                <div className="bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-3 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-white">
                       <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                       </svg>
-                      Data Table ({queryResults.rowCount} rows)
-                    </h4>
+                      {queryResults.rowCount} {queryResults.rowCount === 1 ? 'row' : 'rows'}
+                    </div>
                     <ExportButton
                       data={{
                         columns: queryResults.columns,
-                        rows: queryResults.rows.map((row: any[], index) => {
+                        rows: queryResults.rows.map((row: any[]) => {
                           const obj: any = {};
                           queryResults.columns.forEach((col, colIndex) => {
                             obj[col] = row[colIndex];
@@ -156,36 +144,35 @@ export const Message: React.FC<MessageProps> = ({ message, toolResults }) => {
                     />
                   </div>
 
-                  {/* Table */}
-                  <div className="overflow-x-auto max-h-96 overflow-y-auto">
-                    <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-700">
+                  <div className="overflow-x-auto max-h-96">
+                    <table className="min-w-full">
                       <thead className="bg-gray-100 dark:bg-gray-800 sticky top-0">
                         <tr>
                           {queryResults.columns.map((col, idx) => (
                             <th
                               key={idx}
-                              className="px-4 py-2 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider"
+                              className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider border-b-2 border-gray-200 dark:border-gray-700"
                             >
                               {col}
                             </th>
                           ))}
                         </tr>
                       </thead>
-                      <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                      <tbody className="bg-white dark:bg-gray-800">
                         {queryResults.rows.map((row: any[], rowIdx) => (
                           <tr
                             key={rowIdx}
-                            className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                            className="border-b border-gray-100 dark:border-gray-700 hover:bg-blue-50/50 dark:hover:bg-gray-700/50 transition-colors"
                           >
                             {row.map((cell, cellIdx) => (
                               <td
                                 key={cellIdx}
-                                className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100 whitespace-nowrap"
+                                className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100"
                               >
                                 {cell === null ? (
-                                  <span className="text-gray-400 italic">null</span>
+                                  <span className="text-gray-400 italic text-xs">null</span>
                                 ) : typeof cell === 'boolean' ? (
-                                  <span className={cell ? 'text-green-600' : 'text-red-600'}>
+                                  <span className={`font-medium ${cell ? 'text-green-600' : 'text-red-600'}`}>
                                     {cell.toString()}
                                   </span>
                                 ) : (
@@ -201,11 +188,14 @@ export const Message: React.FC<MessageProps> = ({ message, toolResults }) => {
 
                   {/* Query info */}
                   {queryResults.query && (
-                    <details className="mt-3 text-xs">
-                      <summary className="cursor-pointer text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200">
+                    <details className="px-4 py-3 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
+                      <summary className="cursor-pointer text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 flex items-center gap-2">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                        </svg>
                         View SQL Query
                       </summary>
-                      <pre className="mt-2 p-2 bg-gray-100 dark:bg-gray-900 rounded text-gray-800 dark:text-gray-200 overflow-x-auto">
+                      <pre className="mt-3 p-3 bg-gray-800 dark:bg-gray-950 rounded-lg text-green-400 text-xs overflow-x-auto font-mono">
                         {queryResults.query}
                       </pre>
                     </details>
@@ -214,7 +204,7 @@ export const Message: React.FC<MessageProps> = ({ message, toolResults }) => {
               </div>
             )}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
